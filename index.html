@@ -1,0 +1,116 @@
+<!DOCTYPE html><html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.1.1/d3.js"></script>
+
+</head>
+    <body>
+        <!--<div id="mainContent"></div>-->
+        <!--<script src="{{cache-break:/main.js}}"></script>-->
+        <script src="https://rawgit.com/Linkurious/linkurious.js/develop/dist/sigma.min.js"></script>
+        <script src="https://rawgit.com/Linkurious/linkurious.js/develop/dist/plugins/sigma.renderers.edgeLabels.min.js"></script>
+        <script src="https://rawgit.com/Linkurious/linkurious.js/develop/dist/plugins/sigma.plugins.design.min.js"></script>
+        <script src="https://rawgit.com/Linkurious/linkurious.js/develop/dist/plugins/sigma.renderers.linkurious.min.js"></script>
+        <div id="container"></div>
+        <div id="graph-container"></div>
+
+        <p style="text-align: center;">
+        <svg width="95%" height="200">
+            <rect x="0" y="0" width="100%" height="160" stroke="#000000" stroke-width="2" fill="#EFFFFF" ></rect>
+            <text x="10" y="23" stroke-width="1" stroke="#000000" font-family="sans-serif" font-size="15" > Text: </text>
+            <text id="svg-text" x="50" y="23" font-family="sans-serif" font-size="15" >  </text>
+            <text x="10" y="140" stroke-width="1" stroke="#000000" font-family="sans-serif" font-size="15" > Hypothesis: </text>
+            <text id="svg-hyp" x="100" y="140" font-family="sans-serif" font-size="15" >  </text>
+        </svg>
+        </p>
+
+        <script>
+
+            function highlightEntities(entities, blockID, yCoordinate) {
+                entities.forEach(function(item, i) {
+                    var offset = document.getElementById(blockID).getStartPositionOfChar(Number(item[1][0])).x;
+                    var width = document.getElementById(blockID).getStartPositionOfChar(Number(item[1][1])).x - offset;
+                    d3.select("svg").append("rect").attr("x", offset).
+                                                    attr("y", yCoordinate).
+                                                    attr("width", width).
+                                                    attr("height", 28).
+                                                    attr("fill", "yellow").
+                                                    attr("opacity", 0.3).attr("stroke-width", 0.5).attr("stroke", "red");
+                });
+            }
+
+            var text = "Ed O'Kelley was the man who shot the man who shot Jesse James.";
+            var hyp = "Ed O'Kelley was a good man.";
+            var textY = 0;
+            var hypY = 10;
+
+            d3.select("#svg-text").text(text);
+            d3.select("#svg-hyp").text(hyp);
+
+            var textEntities = [
+                ['T1', [0, 11]],
+                ['T2', [20, 23]],
+                ['T3', [37, 40]],
+            ];
+
+            var hypEntities = [
+                ['H1', [0, 11]],
+                ['H2', [18, 22]],
+                ['H3', [23, 26]],
+            ];
+
+            highlightEntities(textEntities, "svg-text", 5);
+            highlightEntities(hypEntities, "svg-hyp", 122);
+
+
+            // create a map from entity to entity-id
+            var entityToIdMap = {};
+            function addEntityToMap(entities) {
+                Array.from(entities).forEach(function (item) {
+                    console.log(item);
+                    if (entityToIdMap[item[0]] == null) {
+                        entityToIdMap[item[0]] = item[1];
+                    }
+                    else {
+                        console.error("ERROR: repetition of entity IDs! Potentially duplicate information! ");
+                    }
+                });
+            }
+            addEntityToMap(textEntities);
+            addEntityToMap(hypEntities);
+
+            var relations = [
+                ['R1', 'T2', 'H1'],
+                ['R2', 'T1', 'H2'],
+                ['R3', 'T3', 'H3'],
+            ];
+
+            // this function defines the curve of the edges
+            function positionLink(x1, y1, x2, y2) {
+                return "M" + x1 + "," + y1
+                        + "S" + (x1+x2)/2 + "," + (y1+y2)/2
+                        + " " + x2 + "," + y2;
+            }
+
+            // get x-y coordinates for edge start-eneds
+            var yOffset = 9;
+            relations.forEach(function(item){
+                var entity1Loc = entityToIdMap[item[1]];
+                var entity2Loc = entityToIdMap[item[2]];
+                var blockID = 'svg-text';
+                var x1 = (document.getElementById(blockID).getStartPositionOfChar(Number(entity1Loc[0])).x +
+                        document.getElementById(blockID).getStartPositionOfChar(Number(entity1Loc[1])).x) / 2;
+                var y1 = document.getElementById(blockID).getStartPositionOfChar(Number(entity1Loc[0])).y + yOffset;
+                blockID = 'svg-hyp';
+                var x2 = (document.getElementById(blockID).getStartPositionOfChar(Number(entity2Loc[0])).x +
+                        document.getElementById(blockID).getStartPositionOfChar(Number(entity2Loc[1])).x) / 2;
+                var y2 = document.getElementById(blockID).getStartPositionOfChar(Number(entity2Loc[0])).y - yOffset -8;
+                d3.select("svg").append("path").attr("d", positionLink(x1, y1, x2, y2)).
+                                                attr("stroke", "red").
+                                                attr("stroke-width", "2");
+            });
+        </script>
+
+    </body>
+</html>
